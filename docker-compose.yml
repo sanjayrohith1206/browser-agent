@@ -1,0 +1,54 @@
+# Backend + PostgreSQL + Redis for a server deployment.
+#   cp .env.production.example .env.production   # then fill it in
+#   docker compose --env-file .env.production up -d --build
+# Put a TLS-terminating proxy in front of port 8787, and set
+# ALLOWED_HOSTS / FORWARDED_ALLOW_IPS in .env.production to match.
+
+services:
+  backend:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    env_file: .env.production
+    environment:
+      DATABASE_URL: postgresql+asyncpg://agent:${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD}@postgres:5432/browser_agent
+      REDIS_URL: redis://redis:6379/0
+    ports:
+      - "127.0.0.1:8787:8787"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    read_only: true
+    tmpfs: [/tmp]
+    security_opt: ["no-new-privileges:true"]
+    cap_drop: [ALL]
+    restart: unless-stopped
+
+  postgres:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_USER: agent
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD}
+      POSTGRES_DB: browser_agent
+    volumes: [postgres-data:/var/lib/postgresql/data]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U agent -d browser_agent"]
+      interval: 5s
+      retries: 10
+    restart: unless-stopped
+
+  redis:
+    image: redis:8-alpine
+    command: ["redis-server", "--appendonly", "yes", "--save", "60 1"]
+    volumes: [redis-data:/data]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      retries: 10
+    restart: unless-stopped
+
+volumes:
+  postgres-data:
+  redis-data:

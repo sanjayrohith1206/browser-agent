@@ -1,0 +1,349 @@
+{
+  "version": 3,
+  "tools": [
+    {
+      "name": "get_current_page",
+      "description": "Get the URL, title and loading status of the browser tab the task is operating on. Cheap; use it to orient yourself or to check where an action led.",
+      "risk": "read",
+      "parameters": {
+        "type": "object",
+        "properties": {},
+        "required": [],
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "get_page_content",
+      "description": "Read the main readable content of the current page: title, URL, meta description, headings and body text (navigation, scripts and hidden elements are excluded). Use it to read or summarize a page. Returns truncated=true when the text was longer than max_chars.",
+      "risk": "read",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "max_chars": {
+            "type": "integer",
+            "description": "Maximum number of characters of body text to return. Defaults to 40000.",
+            "minimum": 1000,
+            "maximum": 200000
+          }
+        },
+        "required": [],
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "get_elements",
+      "description": "List the interactive elements on the current page (links, buttons, inputs, selects, checkboxes, tabs, menu items...) with an element_id for each, plus their visible text, role, accessible label, placeholder, current value and nearby context text. Elements in the visible viewport come first. Call this before clicking or typing, and again after the page changes: element_ids from a previous page stop working after navigation.",
+      "risk": "read",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "scope": {
+            "type": "string",
+            "enum": ["viewport", "page"],
+            "description": "'viewport' lists only elements currently visible on screen; 'page' (default) lists elements from the whole page, viewport first."
+          },
+          "max_elements": {
+            "type": "integer",
+            "description": "Maximum number of elements to return. Defaults to 150.",
+            "minimum": 10,
+            "maximum": 400
+          }
+        },
+        "required": [],
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "find_element",
+      "description": "Find the elements that best match a plain-language description, such as 'search box', 'Sign in button' or 'price filter'. Matches visible text, accessible labels, placeholders, roles, names and nearby text. Returns up to 5 candidates with element_ids, best first.",
+      "risk": "read",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "description": {
+            "type": "string",
+            "description": "What the element is or says, e.g. 'search input' or 'Add to cart'.",
+            "minLength": 1,
+            "maxLength": 200
+          },
+          "role": {
+            "type": "string",
+            "description": "Optional role to restrict matches: button, link, textbox, searchbox, combobox, checkbox, radio, tab, menuitem, option.",
+            "maxLength": 30
+          }
+        },
+        "required": ["description"],
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "get_links",
+      "description": "List the links on the current page with their text and URL, main content first. Useful for choosing which page to open next.",
+      "risk": "read",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "max_links": {
+            "type": "integer",
+            "description": "Maximum number of links to return. Defaults to 100.",
+            "minimum": 10,
+            "maximum": 300
+          }
+        },
+        "required": [],
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "click_element",
+      "description": "Click an element by its element_id (from get_elements or find_element). Waits briefly for the page to react and reports whether it navigated. Links that open a new tab open it and switch to it. Clicks that would buy, pay, delete, send, publish or change an account are put to the user for approval first; if they decline, the result is USER_DECLINED.",
+      "risk": "interact",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "element_id": { "type": "string", "minLength": 1, "maxLength": 40 }
+        },
+        "required": ["element_id"],
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "type_text",
+      "description": "Type text into an input, text area or editable element. Replaces the current content unless append=true. Set press_enter=true to submit, e.g. to run a search. Password and payment-card fields are refused with SENSITIVE_FIELD.",
+      "risk": "interact",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "element_id": { "type": "string", "minLength": 1, "maxLength": 40 },
+          "text": { "type": "string", "maxLength": 5000 },
+          "append": {
+            "type": "boolean",
+            "description": "Add to the existing content instead of replacing it. Default false."
+          },
+          "press_enter": {
+            "type": "boolean",
+            "description": "Press Enter after typing (submits search boxes and most single-field forms). Default false."
+          }
+        },
+        "required": ["element_id", "text"],
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "clear_input",
+      "description": "Clear the content of an input, text area or editable element.",
+      "risk": "interact",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "element_id": { "type": "string", "minLength": 1, "maxLength": 40 }
+        },
+        "required": ["element_id"],
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "select_option",
+      "description": "Choose an option in a dropdown (<select>) by its visible text or value. For custom dropdowns that are not <select> elements, click the dropdown and then click the option instead.",
+      "risk": "interact",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "element_id": { "type": "string", "minLength": 1, "maxLength": 40 },
+          "option": {
+            "type": "string",
+            "description": "The option's visible text (preferred) or value.",
+            "minLength": 1,
+            "maxLength": 300
+          }
+        },
+        "required": ["element_id", "option"],
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "scroll_page",
+      "description": "Scroll the page to reveal more content: by direction, or so that a given element is in view.",
+      "risk": "read",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "direction": {
+            "type": "string",
+            "enum": ["down", "up", "top", "bottom"],
+            "description": "Scroll direction. Ignored when element_id is given. Default 'down'."
+          },
+          "amount": {
+            "type": "number",
+            "description": "How far to scroll for down/up, in screen heights. Default 0.8.",
+            "minimum": 0.1,
+            "maximum": 10
+          },
+          "element_id": {
+            "type": "string",
+            "description": "Scroll this element into view instead.",
+            "maxLength": 40
+          }
+        },
+        "required": [],
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "navigate",
+      "description": "Open a URL in the task's tab and wait for it to load. Only http and https URLs are allowed. To search the web, navigate to a search engine results URL, e.g. https://www.google.com/search?q=your+query.",
+      "risk": "interact",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "url": {
+            "type": "string",
+            "description": "Absolute http(s) URL.",
+            "minLength": 1,
+            "maxLength": 4000
+          }
+        },
+        "required": ["url"],
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "wait",
+      "description": "Wait for the page to update: for a number of seconds, or until some text appears on the page (whichever comes first).",
+      "risk": "read",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "seconds": {
+            "type": "number",
+            "description": "Maximum time to wait. Default 2.",
+            "minimum": 0.2,
+            "maximum": 15
+          },
+          "until_text": {
+            "type": "string",
+            "description": "Stop waiting as soon as this text is visible on the page (case-insensitive).",
+            "maxLength": 200
+          }
+        },
+        "required": [],
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "take_screenshot",
+      "description": "Capture what is currently visible in the task's tab as an image. Use when the page layout matters or text extraction is not enough (charts, images, visual state). The task's tab must be the one showing in its window.",
+      "risk": "read",
+      "parameters": {
+        "type": "object",
+        "properties": {},
+        "required": [],
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "list_tabs",
+      "description": "List the open tabs in the task's browser window: tab_id, title, URL, which one is active, which one the task is working in, and which ones the task opened.",
+      "risk": "read",
+      "parameters": {
+        "type": "object",
+        "properties": {},
+        "required": [],
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "open_tab",
+      "description": "Open a URL in a new tab and work in that tab from now on (the previous tab stays open). Use it to keep a page you still need, e.g. to compare items across sites. Only http and https URLs are allowed.",
+      "risk": "interact",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "url": {
+            "type": "string",
+            "description": "Absolute http(s) URL.",
+            "minLength": 1,
+            "maxLength": 4000
+          }
+        },
+        "required": ["url"],
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "switch_tab",
+      "description": "Work in another open tab (by tab_id from list_tabs) and bring it to the front. Element IDs from other tabs don't work there: get fresh elements after switching.",
+      "risk": "interact",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "tab_id": { "type": "integer", "minimum": 0 }
+        },
+        "required": ["tab_id"],
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "close_tab",
+      "description": "Close a tab by tab_id. Close only tabs you opened for this task; closing one of the user's own tabs needs their approval. If you close the tab you are working in, work continues in the tab you came from.",
+      "risk": "interact",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "tab_id": { "type": "integer", "minimum": 0 }
+        },
+        "required": ["tab_id"],
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "ask_user",
+      "description": "Ask the user a question and wait for their answer. Use it when you need something only the user knows or must decide: a missing detail (a date, size, address or budget), a choice between options you found, or what to do when you are stuck. Do not ask for information you can find in the browser, and do not use it to confirm risky actions: the system asks the user to approve those itself. Offer options when the answer is one of a few choices.",
+      "risk": "read",
+      "runs_in": "agent",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "question": {
+            "type": "string",
+            "description": "The question, in plain language.",
+            "minLength": 1,
+            "maxLength": 1000
+          },
+          "options": {
+            "type": "array",
+            "description": "Optional short answers the user can pick from. They can always type their own instead.",
+            "items": { "type": "string", "minLength": 1, "maxLength": 120 },
+            "maxItems": 6
+          }
+        },
+        "required": ["question"],
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "finish_task",
+      "description": "End the task and give the user your final answer. Call it exactly once: when the request is done, when only part of it could be done, or when you are blocked. The answer is shown to the user as your reply, so write it for them (Markdown is fine): lead with the result, then anything they still need to do. Nothing runs after this.",
+      "risk": "read",
+      "runs_in": "agent",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "answer": {
+            "type": "string",
+            "description": "Your final reply to the user.",
+            "minLength": 1,
+            "maxLength": 20000
+          },
+          "outcome": {
+            "type": "string",
+            "enum": ["done", "partial", "blocked"],
+            "description": "done: the request was fully completed. partial: only some of it was. blocked: it could not be done."
+          }
+        },
+        "required": ["answer", "outcome"],
+        "additionalProperties": false
+      }
+    }
+  ]
+}
